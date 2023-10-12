@@ -3,6 +3,7 @@ from requests import post
 from aiohttp_sse_client.client import EventSource
 from contextlib import asynccontextmanager
 import json
+import os
 import hmac as hm
 from hashlib import sha3_256 as sha
 from base64 import b64encode as e
@@ -10,8 +11,10 @@ from base64 import b64encode as e
 def hash(msg: str):
     return e(sha(msg.encode()).digest()).decode()
 
+
 def hmac(key: str, msg: str):
-    return e(hm.digest(key.encode(), msg.encode())).decode()
+    return e(hm.digest(key.encode(), msg.encode(), sha)).decode()
+
 
 async def send(msg: str):
     async with aiohttp.ClientSession() as session:
@@ -52,12 +55,17 @@ async def make_reader():
 
         yield (read, write)
 
+def increment_byte_array(byte_array):
+    for i in range(len(byte_array)):
+        byte_array[i] = (byte_array[i] + 1) & 255
+        if byte_array[i] != 0:
+            break
+
+def generate_random_nonce():
+    return bytearray(os.urandom(4))
+
 
 def generateRSA() -> tuple[str, str]:
-    return ""
-
-
-def hmac(secret: str, content: str) -> str:
     return ""
 
 
