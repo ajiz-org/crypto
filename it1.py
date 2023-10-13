@@ -1,15 +1,11 @@
 from typing import Any, Callable, Coroutine
+from client import make_reader, send as send1
+from common import split
 from utils import (
-    decode64,
-    encode64,
-    generate_random_nonce,
-    get_hmac_nonce,
-    get_verify_nonce,
+    make_nonces,
     hmac,
-    increment_byte_array,
-    make_reader,
-    send as send1,
     hash,
+    encode64
 )
 from asyncio import sleep
 from math import floor, sqrt
@@ -52,10 +48,10 @@ async def handle_names(
     await send("Hello Guys I am the bot again")
     await send(f"Please post your names followed by {desc}")
 
-    names: list[str] = list(map(lambda x: None, pwd))
+    names: list[str] = list(map(lambda _: None, pwd))
     while pending > 0:
         msg = await read()
-        plain, sig = msg[:-size].rstrip(), msg[-size:]
+        plain, sig = split(msg, -size)
         plain = plain.rstrip()
         for i in (i for i in range(n) if names[i] == None):
             if not verify(pwd[i], sig, plain, i):
@@ -85,16 +81,6 @@ async def handle_names_with_sign(
     )
 
 
-def make_nonces(size: int, sign: Callable[[str, str], str]):
-    nonce = generate_random_nonce()
-    nonces = [nonce] * size
-    nonce_size = len(encode64(nonce))
-
-    return (
-        (nonce, nonce_size, nonces),
-        get_verify_nonce(nonces, sign),
-        get_hmac_nonce(nonces[-1]),
-    )
 
 
 async def OTP(pwd: list[str]):
@@ -167,7 +153,8 @@ async def NONCE(pwd: list[str]):
             verify=verify,
         )
         roles = await handle_roles(pwd, names, send, sign)
-        send('Ok now here is the shared key')
+        send("Ok now here is the shared key")
+        
 
 
 pwd = ["af", "oa", "tt"]
