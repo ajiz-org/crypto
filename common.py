@@ -14,7 +14,7 @@ def split(data: bytes, point: int) -> tuple[bytes, bytes]:
 def split(data: str | bytes, point: int):
     a, b = data[:point], data[point:]
     if type(a) == str:
-        a = a.rstrip()
+        a = a.strip()
     return a, b
 
 
@@ -26,6 +26,6 @@ def increment_byte_array(byte_array: bytearray):
 
 
 def compare_increment(new: bytes | bytearray, old: bytes | bytearray):
-    int_old = int.from_bytes(old, byteorder='big')
-    int_new = int.from_bytes(new, byteorder='big')
+    int_old = int.from_bytes(old, byteorder='little')
+    int_new = int.from_bytes(new, byteorder='little')
     return int_new == int_old + 1

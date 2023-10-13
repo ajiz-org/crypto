@@ -32,13 +32,15 @@ async def make_reader():
 
         async def read() -> str:
             while True:
-                ev = await anext(client)
-                data = json.loads(ev.data)
-                id = data['id'][:-2]
-                if id in pending:
-                    pending.remove(id)
-                else:
-                    return data['data']
-
+                try:
+                    ev = await anext(client)
+                    data = json.loads(ev.data)
+                    id = data['id'][:-2]
+                    if id in pending:
+                        pending.remove(id)
+                    else:
+                        return data['data']
+                except TimeoutError as e:
+                    print(e)
         yield (read, write)
 

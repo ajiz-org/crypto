@@ -23,8 +23,5 @@ def aes_encrypt(pwd: bytes, nonce: bytearray, plaintext: bytes):
 def aes_decrypt(pwd: bytes, nonce: bytearray, ciphertext: bytes):
     salt, ciphertext = split(ciphertext, 16)
     aesgcm, nonce = get_key_nonce(pwd, salt, nonce)
-    try:
-        plaintext = aesgcm.decrypt(nonce, ciphertext, b"")
-        return plaintext
-    except Exception as e:
-        return None
+    plaintext = aesgcm.decrypt(nonce, ciphertext, b"")
+    return plaintext
