@@ -1,19 +1,42 @@
 import aiohttp
-from requests import post
 from aiohttp_sse_client.client import EventSource
 from contextlib import asynccontextmanager
 import json
 import os
 import hmac as hm
 from hashlib import sha3_256 as sha
-from base64 import b64encode as e
+from base64 import b64encode, b64decode
+
+def encode64(b: bytearray | bytes):
+    return b64encode(b).decode()
+
+def decode64(b64: str):
+    return b64decode(b64)
 
 def hash(msg: str):
-    return e(sha(msg.encode()).digest()).decode()
+    return encode64(sha(msg.encode()).digest())
 
 
 def hmac(key: str, msg: str):
-    return e(hm.digest(key.encode(), msg.encode(), sha)).decode()
+    return encode64(hm.digest(key.encode(), msg.encode(), sha))
+
+def get_hmac_nonce(nonce_bytes: bytes):
+    nonce = bytearray(nonce_bytes)
+    def hmac_nonce(key: str, msg: str):
+        increment_byte_array(nonce)
+        return encode64(nonce)+hmac(key, encode64(nonce)+msg)
+    return hmac_nonce
+
+def get_verify_nonce(nonces: list[bytes], sign = hmac):
+    def verify_nonce(pwd: str, sig: str, plain: str, i = 0):
+        nonce_size = len(encode64(nonces[0]))
+        nonce_encoded, sig = sig[:nonce_size], sig[nonce_size:]
+        nonce = decode64(nonce_encoded)
+        if nonce != nonces[i] + 1 or sig != sign(pwd, nonce_encoded + plain):
+            return False
+        nonces[i] = nonce
+        return True
+    return verify_nonce
 
 
 async def send(msg: str):
@@ -62,7 +85,7 @@ def increment_byte_array(byte_array):
             break
 
 def generate_random_nonce():
-    return bytearray(os.urandom(4))
+    return os.urandom(6)
 
 
 def generateRSA() -> tuple[str, str]:
