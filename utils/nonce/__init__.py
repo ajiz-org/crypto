@@ -12,7 +12,12 @@ def generate_random_nonce():
 
 
 def make_nonces(size: int, sign=hmac, nonce=generate_random_nonce()):
-    nonces = [bytearray(nonce) for i in range(size)]
+    nonces = [bytearray(nonce) for _ in range(size)]
+
+    def undo():
+        nonces[0] = bytearray(
+            int.from_bytes(nonces[0], byteorder="little").to_bytes(byteorder="little")
+        )
 
     return (
         nonce,
@@ -20,4 +25,5 @@ def make_nonces(size: int, sign=hmac, nonce=generate_random_nonce()):
         get_sign_nonce(nonces, sign),
         get_nonce_encrypt(nonces),
         get_nonce_decrypt(nonces),
+        undo,
     )

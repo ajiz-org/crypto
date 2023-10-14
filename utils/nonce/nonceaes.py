@@ -12,10 +12,13 @@ def get_nonce_decrypt(
         try:
             nonce = bytearray(nonces[i])
             increment_byte_array(nonce)
+            print('decrypting', nonce, pwd, cipher)
             plain = decrypt(pwd.encode(), nonce, decode64(cipher))
+            print('result', plain)
             nonces[i] = nonce
             return plain.decode()
         except Exception as e:
+            print('fail')
             print(e)
             return None
     return nonce_decrypt

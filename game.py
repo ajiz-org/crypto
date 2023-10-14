@@ -51,17 +51,26 @@ async def handle_names(
     while pending > 0:
         msg = await read()
         plain, sig = split(msg, -size)
-        for i in (i for i in range(n) if gen_pwd[i] != None):
-            print(gen_pwd[i], ", ", sig, ", ", plain, ", ", msg)
-            if not verify(gen_pwd[i], sig, plain, i):
+        print("plain=", plain, "sig=", sig)
+        print(n, gen_pwd)
+        for i in (i for i in range(n)):
+            if gen_pwd[i] == None:
+                continue
+            if not verify(gen_pwd[i], sig, plain, j):
+                continue
+            if plain in names:
+                await send("bot: " + plain + " is used")
                 continue
             pending -= 1
             if pending:
                 await send("bot: " + str(pending) + " to go")
             names[j] = plain
             pwd[j] = gen_pwd[i]
+            gen_pwd[i] = None
             j += 1
             break
+        else:
+            print("strange")
     await send("bot: Ok here are the names: " + ", ".join(names))
     return names
 
@@ -165,26 +174,37 @@ async def play_game(
         while len(villagers_votes) != remaining:
             msg: str = await read()
             i = next(
-                (i for i in range(len(names)) if msg.startswith(names[i] + ":")),
+                (
+                    i
+                    for i in range(len(names))
+                    if names[i]
+                    if msg.startswith(names[i] + ":")
+                ),
                 None,
             )
             if i == None:
+                print("not a villager vote", msg)
                 messages.append(msg)
                 continue
 
             sig_size = len(hmac("", ""))
             m = re.match("^(.*?:\s*ban\s+(.*?))\s+(.{" + str(sig_size) + "})$", msg)
-            if not m or not verify(pwd, m[3], m[1], i) or m[2] not in names:
+            if not m:
+                print(msg, "incorrect format")
+                continue
+            if not verify(pwd[i], m[3], m[2], i):
+                print("incorrect signature")
+                continue
+            if m[2] not in names:
                 continue
             await send("bot: " + m[1])
             banned = m[2]
             j = names.index(banned)
             villagers_votes[i] = j
-        value_counts = Counter(villagers_votes)
-        max = max(value_counts.values())
-        winners = [value for value, count in value_counts.items() if count == max]
+        value_counts = Counter(villagers_votes.values())
+        maxc = max(value_counts.values())
+        winners = [value for value, count in value_counts.items() if count == maxc]
         if len(winners) == 1:
-            await send("bot: shame, you couldn't reach a concensus")
             (i,) = winners
             name = names[i]
             role = roles[i]
@@ -199,14 +219,17 @@ async def play_game(
             roles[i] = None
             pwd[i] = None
             names[i] = None
+            remaining -= 1
             await send(
-                f"bot: {name} banned "
-                + " ".join(
+                f"bot: {name} banned\n"
+                + "\n".join(
                     f"{names[k]} ({sign(pwd[k], name, k)})" for k in range(n) if pwd[k]
                 )
             )
             if n_wolves == 0:
                 continue
+        else:
+            await send("bot: shame, you couldn't reach a concensus")
 
         async def handle_seer(msg: str):
             i = roles.index("Seer")
@@ -233,6 +256,7 @@ async def play_game(
                 if player not in names:
                     return
                 wolves_votes[i] = names.index(player)
+                return
 
         if "Seer" in roles:
             await send("bot: it's night, everyone goes asleep besides the seer")
@@ -250,9 +274,10 @@ async def play_game(
         while len(wolves_votes) != n_wolves:
             handle_wolves(await read())
 
-        value_counts = Counter(wolves_votes)
-        max = max(value_counts.values())
-        winners = [value for value, count in value_counts.items() if count == max]
+        print("wolves_votes=", wolves_votes)
+        value_counts = Counter(wolves_votes.values())
+        maxc = max(value_counts.values())
+        winners = [value for value, count in value_counts.items() if count == maxc]
         await send("bot: Its morning, everyone wakes up")
         if len(winners) == 1:
             (i,) = winners
@@ -260,11 +285,12 @@ async def play_game(
             pwd[i] = None
             names[i] = None
             await send(
-                f"bot: {name} eaten "
-                + " ".join(
+                f"bot: {name} eaten\n"
+                + "\n".join(
                     f"{names[k]} ({sign(pwd[k], name, k)})" for k in range(n) if pwd[k]
                 )
             )
+            remaining -= 1
         else:
             await send(
                 "bot: the wolves couldn't reach a consensus, and no villager has been eaten"
@@ -274,8 +300,7 @@ async def play_game(
 async def NONCE(gen_pwd: list[str], pwd: list[str]):
     async with make_reader() as (read, send):
         params = (gen_pwd, pwd, read, send)
-        (nonce, verify, sign, encrypt, decrypt) = make_nonces(len(pwd))
-
+        (nonce, verify, sign, encrypt, decrypt, _) = make_nonces(len(pwd))
         names = await handle_names(
             *params,
             title=" ~ NONCE ~ ",
@@ -293,11 +318,18 @@ async def NONCE(gen_pwd: list[str], pwd: list[str]):
         secret = make_key()
         for i in wolves:
             await send(encrypt(pwd[i], secret, i))
-        await send("bot: once you agree on the villager to eat, send me his name")
         await send(
-            "bot: at the same time, the villagers agree on someone and vote to exclude him"
+            "bot: once you agree on the villager to eat, send me his name\n"
+            "enc('eat ' +  your_target)"
         )
-        await play_game(verify, sign, encrypt, decrypt, names, roles, pwd, read, send)
+        await send(
+            "bot: at the same time, the villagers agree on someone and vote to exclude him\n"
+            "your_name + ': ban ' +  your_target + sign(your_target)"
+        )
+        winner = await play_game(
+            verify, sign, encrypt, decrypt, names, roles, pwd, read, send
+        )
+        await send('bot: ' + winner + ' won')
 
 
 pwd = ["af", "oa", "tt", "qa"]
@@ -311,5 +343,5 @@ pwd = ["af", "oa", "tt", "qa"]
 # s.run(HMAC(pwd,pwd))
 # start the game by voting and show the reply attack, show the need for a nonce
 # mention salt, kdf and modular crypt format
-s.run(NONCE(pwd, pwd))
+s.run(NONCE([*pwd], [None] * len(pwd)))
 # talk about AES, block cipher mode, padding
