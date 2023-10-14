@@ -5,7 +5,6 @@ from utils import make_nonces, hmac, hash, encode64, make_key
 from asyncio import sleep
 from math import floor, sqrt
 import re
-import asyncio as s
 import random
 from collections import Counter
 
@@ -332,16 +331,3 @@ async def NONCE(gen_pwd: list[str], pwd: list[str]):
         await send('bot: ' + winner + ' won')
 
 
-pwd = ["af", "oa", "tt", "qa"]
-# first run with no auth and note the flaw of some one else steeling the identity of some one else
-# s.run(NoAuth(3))
-# introduce OTP auth and proceed to role destribution, note the need to a permenant key
-# s.run(OTP(pwd,pwd))
-# introduce HASH
-# s.run(HASH(pwd,pwd))
-# and HMAC (mention KDF) and use it for role destribution
-# s.run(HMAC(pwd,pwd))
-# start the game by voting and show the reply attack, show the need for a nonce
-# mention salt, kdf and modular crypt format
-s.run(NONCE([*pwd], [None] * len(pwd)))
-# talk about AES, block cipher mode, padding
