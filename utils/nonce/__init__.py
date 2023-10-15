@@ -16,7 +16,9 @@ def make_nonces(size: int, sign=hmac, nonce=generate_random_nonce()):
 
     def undo():
         nonces[0] = bytearray(
-            int.from_bytes(nonces[0], byteorder="little").to_bytes(byteorder="little")
+            (int.from_bytes(nonces[0], byteorder="little") - 1).to_bytes(
+                len(nonces[0]), byteorder="little"
+            )
         )
 
     return (

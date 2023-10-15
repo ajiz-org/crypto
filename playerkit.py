@@ -1,11 +1,12 @@
+from typing import Callable
 from cryplib.aes import aes_decrypt, aes_encrypt
 from utils.encoding import decode64, encode64
 from utils import make_nonces, hmac
 
 
-def get_role(pwd, sig, verif):
+def get_role(sig, verif: Callable[[str, str], bool]):
     for role in ("Wolf", "Seer", "Villager"):
-        if verif(pwd, sig, role):
+        if verif(sig, role):
             return role
 
 
@@ -45,12 +46,18 @@ def mykit(nonce_encoded: str, pwd: str):
             return encode64(aes_encrypt(key, None, plain.encode()))
 
         def decrypt(cipher: str):
-            return aes_decrypt(key, None, decode64(cipher)).encode()
+            return aes_decrypt(key, None, decode64(cipher)).decode()
 
         return (encrypt, decrypt)
+
+    def get_secret(*cipher: list[str]):
+        return next(i for i in (bot_dec(x) for x in cipher) if i)
 
     def myundo():
         undo()
         return history.pop()
 
-    return (nonce, myverif, mysign, bot_enc, bot_dec, myundo, myhistory)
+    def myrole(sig: str):
+        return get_role(sig, myverif)
+
+    return (nonce, myverif, mysign, bot_enc, get_secret, myrole, myundo, myhistory)
