@@ -13,7 +13,7 @@ def use_nonce(nonce_encoded: str):
     return make_nonces(1, hmac, decode64(nonce_encoded))
 
 
-def my_kit(nonce_encoded: str, pwd: str):
+def mykit(nonce_encoded: str, pwd: str):
     history: list[str] = []
     nonce, verif, sign, enc, dec, undo = use_nonce(nonce_encoded)
 
