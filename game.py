@@ -83,7 +83,7 @@ async def handle_names_with_sign(
     desc: str,
     sign: Callable[[str, str], str],
 ):
-    size = len(sign("", ""))
+    size = len(sign(pwd_gen[0], pwd_gen[0]))
     params = (pwd_gen, pwd, read, send, title, desc, size)
     return await handle_names(
         *params,
@@ -303,7 +303,7 @@ async def NONCE(gen_pwd: list[str], pwd: list[str]):
         names = await handle_names(
             *params,
             title=" ~ NONCE ~ ",
-            desc="nonce_encoded + hmac(The secret, nonce_encoded + Your Name)\n"
+            desc="hmac(The secret, nonce_encoded + Your Name)\n"
             "nonce_encoded=encode64(nonce_encoded)\n"
             f"starting nonce encoded = {encode64(nonce)}",
             size=len(hmac("", "")),

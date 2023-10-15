@@ -7,8 +7,11 @@ import os
 def get_key_nonce(pwd: bytes, salt: bytes, nonce: bytearray):
     aesgcm = AESGCM(key_derivation(pwd, salt))
     min_nonce_length = 8
-    padding_needed = max(0, min_nonce_length - len(nonce))
-    nonce = nonce + b"\0" * padding_needed
+    if nonce is None:
+        nonce = salt
+    else:
+        padding_needed = max(0, min_nonce_length - len(nonce))
+        nonce = nonce + b"\0" * padding_needed
     return aesgcm, nonce
 
 
